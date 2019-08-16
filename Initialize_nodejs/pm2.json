@@ -1,0 +1,15 @@
+{
+  "apps": [{
+    "name": "Initialize_nodejs",
+    "script": "production.js",
+    "cwd": "C:\Users\Administrator\Initialize_nodejs",
+    "exec_mode": "fork",
+    "max_memory_restart": "1G",
+    "autorestart": true,
+    "node_args": [],
+    "args": [],
+    "env": {
+      
+    }
+  }]
+}
