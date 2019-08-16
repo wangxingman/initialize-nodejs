@@ -12,16 +12,19 @@ const isDev = think.env === 'development';
  * cache adapter config
  * @type {Object}
  */
+/**
+ * 缓存配置
+ * @type {Object}
+ */
 exports.cache = {
-  type: 'file',
+  type: 'redis',
   common: {
-    timeout: 24 * 60 * 60 * 1000 // millisecond
+    timeout: 24 * 3600 * 1000 // millisecond
   },
-  file: {
-    handle: fileCache,
-    cachePath: path.join(think.ROOT_PATH, 'runtime/cache'), // absoulte path is necessarily required
-    pathDepth: 1,
-    gcInterval: 24 * 60 * 60 * 1000 // gc interval
+  redis: {
+    handle: redisCache,
+    port: 6379,
+    host: '127.0.0.1',
   }
 };
 
@@ -38,7 +41,7 @@ exports.model = {
   },
   mysql: {
     handle: mysql,
-    database: 'game-server-medical',
+    database: 'game-server',
     prefix: '',
     encoding: 'utf8',
     host: '127.0.0.1',
@@ -54,17 +57,18 @@ exports.model = {
  * @type {Object}
  */
 exports.session = {
-  type: 'file',
+  type: 'redis',
   common: {
     cookie: {
-      name: 'thinkjs'
-      // keys: ['werwer', 'werwer'],
-      // signed: true
+      name: 'KH_SESSION'
     }
   },
-  file: {
-    handle: fileSession,
-    sessionPath: path.join(think.ROOT_PATH, 'runtime/session')
+  redis: {
+    handle: redisSession,
+    maxAge: 3600 * 1000,
+    autoUpdate: true,
+    port: 6379,
+    host: '127.0.0.1',
   }
 };
 

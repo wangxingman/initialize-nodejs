@@ -8,6 +8,7 @@ module.exports = class extends think.framework.crud {
    * @returns {Promise<void>}
    */
   async dAction() {
+    console.info("---dAction--------");
     const where = this.post('where');
     const model = this.getBaseModel();
     const b = await model.deleteUser(where);
@@ -17,5 +18,4 @@ module.exports = class extends think.framework.crud {
       this.fail('删除用户失败');
     }
   }
-
 }
