@@ -1,8 +1,7 @@
 /** 用来解决一类功能的多种实现 ，这些实现提供一套相同的接口 ，可以很方便不同类型的切换 我理解为就是配置 一些软件 或者应用*/
-
-const fileCache = require('think-cache-file');
-const nunjucks = require('think-view-nunjucks');
-const fileSession = require('think-session-file');
+//todo 回头将适配器的东西熟悉一下
+const redisCache = require('think-cache-redis');
+const redisSession = require('think-session-redis');
 const mysql = require('think-model-mysql');
 const {Console, File, DateFile} = require('think-logger3');
 const path = require('path');
@@ -72,21 +71,6 @@ exports.session = {
   }
 };
 
-/**
- * view adapter config
- * @type {Object}
- */
-exports.view = {
-  type: 'nunjucks',
-  common: {
-    viewPath: path.join(think.ROOT_PATH, 'view'),
-    sep: '_',
-    extname: '.html'
-  },
-  nunjucks: {
-    handle: nunjucks
-  }
-};
 
 /**
  * logger adapter config

@@ -1,7 +1,14 @@
-/** 中间件 */
+/**
+*@Date    :  2019/8/20 0020
+*@Author  :  wx
+*@explain :  中间件
+*/
 
 const path = require('path');
 const isDev = think.env === 'development';
+const session = require('../middleware/ssessionMiddlware');
+//跨域资源共享
+const koa2_cors = require('koa2-cors');
 
 module.exports = [
   {
@@ -32,6 +39,19 @@ module.exports = [
       keepExtensions: true,
       limit: '5mb'
     }
+  },
+  {
+    handle: koa2_cors,
+    options: {
+      exposeHeaders: ['WWW-Authenticate', 'Server-Authorization'],
+      maxAge: 5,
+      credentials: true,
+      allowMethods: ['GET', 'POST'],
+      allowHeaders: ['Content-Type', 'Authorization', 'Accept']
+    }
+  },
+  {
+    handle: session
   },
   {
     handle: 'router',

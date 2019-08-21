@@ -1,6 +1,11 @@
 module.exports = class extends think.Logic {
   /** 自动调用验证方法 自动效验  */
-  cAction() {
+  /**
+  *@Date    :  2019/8/19 0019
+  *@Author  :  wx
+  *@explain : 添加基础校验
+  */
+  addAction() {
     this.rules = {
       where: {
         object: true,
