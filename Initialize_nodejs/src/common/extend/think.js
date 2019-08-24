@@ -1,4 +1,6 @@
 const path = require('path');
+const moment = require('moment');
+const _ = require('lodash');
 
 module.exports = {
   framework: {
@@ -14,6 +16,15 @@ module.exports = {
   md5_2(text) {
     return this.md5(this.md5(text));
   },
+  /**
+  *@Date    :  2019/8/23 0023
+  *@Author  :  wx
+  *@explain :  获取当前登陆的用户
+  */
+  getLoginUserId() {
+
+  } ,
+
   /**
   *@Date    :  2019/8/19 0019
   *@Author  :  wx

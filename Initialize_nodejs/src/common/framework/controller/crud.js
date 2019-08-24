@@ -1,5 +1,5 @@
 const base = require('./base');
-
+const moment = require('moment');
 /**
  * 通用crud action
  * t 表名
@@ -23,6 +23,15 @@ module.exports = class extends base {
   */
   getBaseModel() {
     return this.model(this.tableName);
+  }
+
+  /**
+  *@Date    :  2019/8/24 0024
+  *@Author  :  wx
+  *@explain :
+  */
+  getBaseMoment() {
+    return this.moment;
   }
 
   /**

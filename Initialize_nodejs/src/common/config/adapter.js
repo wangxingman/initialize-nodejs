@@ -40,8 +40,8 @@ exports.model = {
   },
   mysql: {
     handle: mysql,
-    database: 'game-server',
-    prefix: '',
+    database: 'game-server-shop',
+    prefix: 'nideshop_',
     encoding: 'utf8',
     host: '127.0.0.1',
     port: '3306',
