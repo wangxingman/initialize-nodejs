@@ -10,10 +10,10 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  获取所有的
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  获取所有的
+   */
   async indexAction() {
     const model = this.getBaseModel();
     const goodsList = await model.select();
@@ -21,10 +21,10 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :   获取sku信息，用于购物车编辑时选择规格
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :   获取sku信息，用于购物车编辑时选择规格
+   */
   async skuAction() {
     const goodsId = this.get('id');
     const model = this.model('goods');
@@ -36,17 +36,21 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  商品详情页数据
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  商品详情页数据
+   */
   async detailAction() {
     const goodsId = this.get('id');
     const baseModel = this.getBaseModel();
 
-    //goods_gallery 画
     const info = await baseModel.where({'id': goodsId}).find();
+    if(think.isEmpty(info)){
+        return this.fail("没有该商品");
+    }
+    //goods_gallery【同一个商品 几个图片】
     const gallery = await this.model('goods_gallery').where({goods_id: goodsId}).limit(4).select();
+    //商品的属性
     const attribute = await this.model('goods_attribute').field('nideshop_goods_attribute.value, nideshop_attribute.name')
       .join('nideshop_attribute ON nideshop_goods_attribute.attribute_id=nideshop_attribute.id')
       .order({'nideshop_goods_attribute.id': 'asc'})
@@ -55,13 +59,14 @@ module.exports = class extends think.framework.crud {
     //问题
     const issue = await this.model('goods_issue').select();
     //制造商
-    const brand = await this.model('brand').where({id: info.brand_id}).find();
-    const commentCount = await this.model('comment').where({value_id: goodsId, type_id: 0}).count();
-    const hotComment = await this.model('comment').where({value_id: goodsId, type_id: 0}).find();
+    const brand = await this.model('brands').where({id: info.brand_id}).find();
+    //评论
+    const commentCount = await this.model('comments').where({value_id: goodsId, type_id: 0}).count();
+    const hotComment = await this.model('comments').where({value_id: goodsId, type_id: 0}).find();
 
     let commentInfo = {};
     if (!think.isEmpty(hotComment)) {
-      const commentUser = await this.model('user').field(['nickname', 'username', 'avatar']).where({id: hotComment.user_id}).find();
+      const commentUser = await this.model('users').field(['nickname', 'username', 'avatar']).where({id: hotComment.user_id}).find();
       commentInfo = {
         content: Buffer.from(hotComment.content, 'base64').toString(),
         add_time: think.datetime(new Date(hotComment.add_time * 1000)),
@@ -75,13 +80,11 @@ module.exports = class extends think.framework.crud {
       count: commentCount,
       data: commentInfo
     };
-
+    const userId = this.getLoginUserId();
     // 当前用户是否收藏
-    const userHasCollect = await this.model('collect').isUserHasCollect(this.getLoginUserId(), 0, goodsId);
-
-
+    const userHasCollect = await this.model('collects').isUserHasCollect(userId, 0, goodsId);
     // 记录用户的足迹 TODO
-    await await this.model('footprint').addFootprint(this.getLoginUserId(), goodsId);
+    await await this.model('footprint').addFootprint(userId, goodsId);
 
     // return this.json(jsonData);
     return this.success({
@@ -92,21 +95,22 @@ module.exports = class extends think.framework.crud {
       issue: issue,
       comment: comment,
       brand: brand,
-      specificationList: await model.getSpecificationList(goodsId),
-      productList: await model.getProductList(goodsId)
+      specificationList: await baseModel.getSpecificationList(goodsId),   //商品规格信息
+      productList: await baseModel.getProductList(goodsId)   //商品库存
     });
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  获取分类下的商品
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  获取分类下的商品
+   */
   async categoryAction() {
     const model = this.model('category');
 
     const currentCategory = await model.where({id: this.get('id')}).find();
     const parentCategory = await model.where({id: currentCategory.parent_id}).find();
+    //所有和该数据父目录相同的目录
     const brotherCategory = await model.where({parent_id: currentCategory.parent_id}).select();
 
     return this.success({
@@ -117,15 +121,20 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  获取商品列表
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  获取商品列表
+   */
   async listAction() {
+    //目录id
     const categoryId = this.get('categoryId');
+    //品牌
     const brandId = this.get('brandId');
+    //搜索
     const keyword = this.get('keyword');
+    //是否新品
     const isNew = this.get('isNew');
+    //是否最热
     const isHot = this.get('isHot');
     const page = this.get('page');
     const size = this.get('size');
@@ -146,11 +155,14 @@ module.exports = class extends think.framework.crud {
     if (!think.isEmpty(keyword)) {
       whereMap.name = ['like', `%${keyword}%`];
       // 添加到搜索历史
-      await this.model('search_history').add({
-        keyword: keyword,
-        user_id: this.getLoginUserId(),
-        add_time: parseInt(new Date().getTime() / 1000)
-      });
+      // const session = await this.session('user');
+      // const userId = session.id;
+      const userId = this.ctx.state.userId;
+      if(think.isEmpty(userId)){
+        return think.fail("用户的id不存在");
+      }
+      console.log("loginUserId"+userId);
+      await this.model('search_history').addSearchHistory(keyword, userId);
     }
 
     if (!think.isEmpty(brandId)) {
@@ -177,41 +189,46 @@ module.exports = class extends think.framework.crud {
       'name': '全部',
       'checked': false
     }];
-
+    //条件找到商品目录
     const categoryIds = await goodsQuery.where(whereMap).getField('category_id', 10000);
 
     if (!think.isEmpty(categoryIds)) {
-      // 查找二级分类的parent_id
+      //查找商品父集目录
       const parentIds = await this.model('category').where({id: {'in': categoryIds}}).getField('parent_id', 10000);
-      // 一级分类
+      //所有子目录
       const parentCategory = await this.model('category').field(['id', 'name']).order({'sort_order': 'asc'}).where({'id': {'in': parentIds}}).select();
 
       if (!think.isEmpty(parentCategory)) {
+        //连接两个数组
         filterCategory = filterCategory.concat(parentCategory);
       }
     }
 
     // 加入分类条件
-    if (!think.isEmpty(categoryId) && parseInt(categoryId) > 0) {
+     if (!think.isEmpty(categoryId) && parseInt(categoryId) > 0) {
+      //父目录 当前目录
       whereMap.category_id = ['in', await this.model('category').getCategoryWhereIn(categoryId)];
     }
 
     // 搜索到的商品
     const goodsData = await goodsQuery.where(whereMap).field(['id', 'name', 'list_pic_url', 'retail_price']).order(orderMap).page(page, size).countSelect();
+    //商品目录
     goodsData.filterCategory = filterCategory.map(function(v) {
+      //检查
       v.checked = (think.isEmpty(categoryId) && v.id === 0) || v.id === parseInt(categoryId);
       return v;
     });
+    //商品
     goodsData.goodsList = goodsData.data;
 
     return this.success(goodsData);
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  商品列表筛选的分类列表
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  商品列表筛选的分类列表
+   */
   async filterAction() {
     const categoryId = this.get('categoryId');
     const keyword = this.get('keyword');
@@ -258,10 +275,10 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain : 新品首发
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain : 新品首发
+   */
   async newAction() {
     return this.success({
       bannerInfo: {
@@ -273,10 +290,10 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain : 人气推荐
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain : 人气推荐
+   */
   async hotAction() {
     return this.success({
       bannerInfo: {
@@ -288,13 +305,13 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  商品详情页的大家都在看的商品
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  商品详情页的大家都在看的商品
+   */
   async relatedAction() {
     // 大家都在看商品,取出关联表的商品，如果没有则随机取同分类下的商品
-    const model = this.model('goods');
+    const model = this.getBaseModel();
     const goodsId = this.get('id');
     const relatedGoodsIds = await this.model('related_goods').where({goods_id: goodsId}).getField('related_goods_id');
     let relatedGoods = null;
@@ -305,24 +322,21 @@ module.exports = class extends think.framework.crud {
     } else {
       relatedGoods = await model.where({id: ['IN', relatedGoodsIds]}).field(['id', 'name', 'list_pic_url', 'retail_price']).select();
     }
-
     return this.success({
       goodsList: relatedGoods
     });
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  在售的商品总数
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  在售的商品总数
+   */
   async countAction() {
     const goodsCount = await this.model('goods').where({is_delete: 0, is_on_sale: 1}).count('id');
-
     return this.success({
       goodsCount: goodsCount
     });
   }
 
-
-}
+};

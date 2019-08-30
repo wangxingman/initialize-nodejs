@@ -89,6 +89,25 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
+  *@Date    :  2019/8/30 0030
+  *@Author  :  wx
+  *@explain :  过滤password
+  */
+  async checkPasswordField() {
+    const field = this.post('field');
+    let fields = [];
+    if (!think.isEmpty(field)) {
+      fields = field.split(',').filter(c => c !== 'password');
+    }
+    if (fields.length <= 0) {
+      const model = this.getBaseModel();
+      const tableColumns = await model.query(`SHOW COLUMNS FROM ${model.tableName}`);
+      fields = tableColumns.map(c => c.Field).filter(c => c !== 'password');
+    }
+    this.post('field', fields.join(','));
+  }
+
+  /**
    *@Date    :  2019/8/19 0019
    *@Author  :  wx
    *@explain : 退出登录

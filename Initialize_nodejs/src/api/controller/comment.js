@@ -6,7 +6,7 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'comment');
+    super(ctx, 'comments');
   }
 
   /**
@@ -15,16 +15,18 @@ module.exports = class extends think.framework.crud {
    *@explain :  发表评论
    */
   async postAction() {
+    const session = await this.session('user');
+    const userId = session.id;
     const typeId = this.post('typeId');
     const valueId = this.post('valueId');
     const content = this.post('content');
     const buffer = Buffer.from(content);
-    const insertId = await this.model('comment').add({
+    const insertId = await this.model('comments').add({
       type_id: typeId,
       value_id: valueId,
       content: buffer.toString('base64'),
-      add_time: this.getTime(),
-      user_id: this.getLoginUserId()
+      add_time:  ['exp', 'CURRENT_TIMESTAMP()'],
+      user_id: userId
     });
     if (insertId) {
       return this.success('评论添加成功');
@@ -41,9 +43,9 @@ module.exports = class extends think.framework.crud {
   async countAction() {
     const typeId = this.get('typeId');
     const valueId = this.get('valueId');
-    const allCount = await this.model('comment').where({type_id: typeId, value_id: valueId}).count('id');
+    const allCount = await this.model('comments').where({type_id: typeId, value_id: valueId}).count('id');
 
-    const hasPicCount = await this.model('comment').alias('comment')
+    const hasPicCount = await this.model('comments').alias('comment')
       .join({
         table: 'comment_picture',
         join: 'right',
@@ -63,6 +65,8 @@ module.exports = class extends think.framework.crud {
   *@explain :  全部评论
   */
   async listAction() {
+    const session = await this.session('user');
+    const userId = session.id;
     const typeId = this.get('typeId');
     const valueId = this.get('valueId');
     const showType = this.get('showType'); // 选择评论的类型 0 全部， 1 只显示图片
@@ -72,12 +76,12 @@ module.exports = class extends think.framework.crud {
 
     let comments = [];
     if (showType !== 1) {
-      comments = await this.model('comment').where({
+      comments = await this.model('comments').where({
         type_id: typeId,
         value_id: valueId
       }).page(page, size).countSelect();
     } else {
-      comments = await this.model('comment').alias('comment')
+      comments = await this.model('comments').alias('comments')
         .field(['comment.*'])
         .join({
           table: 'comment_picture',
@@ -95,7 +99,7 @@ module.exports = class extends think.framework.crud {
       comment.value_id = commentItem.value_id;
       comment.id = commentItem.id;
       comment.add_time = think.datetime(new Date(commentItem.add_time * 1000));
-      comment.user_info = await this.model('user').field(['username', 'avatar', 'nickname']).where({id: commentItem.user_id}).find();
+      comment.user_info = await this.model('users').field(['username', 'avatar', 'nickname']).where({id: commentItem.user_id}).find();
       comment.pic_list = await this.model('comment_picture').where({comment_id: commentItem.id}).select();
       commentList.push(comment);
     }

@@ -6,42 +6,42 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'region');
+    super(ctx, 'topics');
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain : 全部主题
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain : 全部主题
+   */
   async listAction() {
-    const model = this.model('topic');
+    const model = this.getBaseModel();
     const data = await model.field(['id', 'title', 'price_info', 'scene_pic_url', 'subtitle']).page(this.get('page') || 1, this.get('size') || 10).countSelect();
 
     return this.success(data);
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain : 主题明细
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain : 主题明细
+   */
   async detailAction() {
-    const model = this.model('topic');
+    const model = this.getBaseModel();
     const data = await model.where({id: this.get('id')}).find();
     return this.success(data);
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  相关专题
+   */
   async relatedAction() {
-    const model = this.model('topic');
+    const model = this.getBaseModel();
     const data = await model.field(['id', 'title', 'price_info', 'scene_pic_url', 'subtitle']).limit(4).select();
 
     return this.success(data);
   }
 
-}
+};

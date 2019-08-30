@@ -9,7 +9,7 @@ const _ = require('lodash');         // 基础类工具类
 
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'comment');
+    super(ctx, 'footprint');
   }
 
   /**
@@ -19,7 +19,8 @@ module.exports = class extends think.framework.crud {
    */
   async deleteAction() {
     const footprintId = this.post('footprintId');
-    const userId = this.getLoginUserId();
+    const session = await this.session('user');
+    const userId = session.id;
     const goods = await this.model('footprint').where({user_id: userId, id: footprintId}).find();
     await this.model('footprint').where({user_id: userId, goods_id: goods.goods_id}).delete();
     return this.success('删除成功');
@@ -28,12 +29,11 @@ module.exports = class extends think.framework.crud {
   /**
    *@Date    :  2019/8/24 0024
    *@Author  :  wx
-   *@explain :
+   *@explain :  足迹列表
    */
   async listAction() {
     const baseModel = this.getBaseModel();
-    const list = await this.model('footprint')
-      .field(['f.*', 'g.name', 'g.list_pic_url', 'g.goods_brief', 'g.retail_price'])
+    baseModel.field(['f.*', 'g.name', 'g.list_pic_url', 'g.goods_brief', 'g.retail_price'])
       .alias('f')
       .join({
         table: 'goods',
@@ -45,7 +45,7 @@ module.exports = class extends think.framework.crud {
       .countSelect();
 
     // 去重、格式化日期、按天分组
-    list.data = _.map(_.uniqBy(list.data, function(item) {
+    baseModel.data = _.map(_.uniqBy(baseModel.data, function(item) {
       return item.goods_id;
     }), (item) => {
       item.add_time = moment.unix(item.add_time).format('YYYY-MM-DD');
@@ -64,11 +64,11 @@ module.exports = class extends think.framework.crud {
       return item;
     });
 
-    list.data = _.groupBy(list.data, function(item) {
+    baseModel.data = _.groupBy(baseModel.data, function(item) {
       return item.add_time;
     });
-    list.data = _.values(list.data);
+    baseModel.data = _.values(baseModel.data);
 
-    return this.success(list);
+    return this.success(baseModel);
   }
 };

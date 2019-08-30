@@ -27,6 +27,8 @@ exports.cache = {
   }
 };
 
+
+
 /**
  * model adapter config
  * @type {Object}
@@ -59,7 +61,7 @@ exports.session = {
   type: 'redis',
   common: {
     cookie: {
-      name: 'KH_SESSION'
+      name: 'SESSION'
     }
   },
   redis: {
@@ -70,7 +72,6 @@ exports.session = {
     host: '127.0.0.1',
   }
 };
-
 
 /**
  * logger adapter config

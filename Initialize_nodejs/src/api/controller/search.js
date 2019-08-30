@@ -6,7 +6,7 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'region');
+    super(ctx, 'search_history');
   }
 
   /**
@@ -15,11 +15,14 @@ module.exports = class extends think.framework.crud {
   *@explain :  用户搜索的历史记录
   */
   async indexAction() {
+    const baseModel = this.getBaseModel();
+    const user = await this.session('user');
+    const userId = user.id;
     // 取出输入框默认的关键词
     const defaultKeyword = await this.model('keywords').where({ is_default: 1 }).limit(1).find();
     // 取出热闹关键词
     const hotKeywordList = await this.model('keywords').distinct('keyword').field(['keyword', 'is_hot']).limit(10).select();
-    const historyKeywordList = await this.model('search_history').distinct('keyword').where({ user_id: this.getLoginUserId() }).limit(10).getField('keyword');
+    const historyKeywordList = await baseModel.distinct('keyword').where({ user_id: userId }).limit(10).getField('keyword');
 
     return this.success({
       defaultKeyword: defaultKeyword,
@@ -31,7 +34,7 @@ module.exports = class extends think.framework.crud {
   /**
   *@Date    :  2019/8/24 0024
   *@Author  :  wx
-  *@explain : 查询热闹关键词
+  *@explain : 搜索帮助
   */
   async helperAction() {
     const keyword = this.get('keyword');
@@ -45,7 +48,20 @@ module.exports = class extends think.framework.crud {
   *@explain :  清空历史
   */
   async clearhistoryAction() {
-    await this.model('search_history').where({ user_id: this.getLoginUserId() }).delete();
+    const session = await this.session('user');
+    const userId = session.id;
+    const baseModel = this.getBaseModel();
+    await baseModel.where({ user_id: userId}).delete();
+    return this.success();
+  }
+
+  /**
+  *@Date    :  2019/8/27 0027
+  *@Author  :  wx
+  *@explain :  搜索数据
+  */
+  async resultAction(){
+
     return this.success();
   }
 

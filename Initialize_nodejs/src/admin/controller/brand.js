@@ -6,7 +6,7 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'brand');
+    super(ctx, 'brands');
   }
 
   /**
@@ -16,9 +16,9 @@ module.exports = class extends think.framework.crud {
    */
   async indexAction() {
     //如果没有 就是对应的数值
-    const page = this.get('page') || 1;
-    const size = this.get('size') || 10;
-    const name = this.get('name') || '';
+    const page = this.get('cp') || think.const.number.one;
+    const size = this.get('ps') || think.const.number.ten;
+    const name = this.get('name') || "";
     const baseModel = this.getBaseModel();
     const data = await baseModel.field(['id', 'name', 'floor_price', 'app_list_pic_url', 'is_new', 'sort_order', 'is_show']).where({name: ['like', `%${name}%`]}).order(['id DESC']).page(page, size).countSelect();
     return this.success(data);
@@ -30,11 +30,9 @@ module.exports = class extends think.framework.crud {
    *@explain :  一个制造商
    */
   async infoAction() {
-    const id = this.get('id');
-    const baseModel = this.getBaseModel();
-    const brand = await baseModel.where({id: id}).find();
-    return this.success(brand);
+    return this.rAction();
   }
+
 
   /**
    *@Date    :  2019/8/23 0023
@@ -63,15 +61,12 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/23 0023
-  *@Author  :  wx
-  *@explain : 删除
-  */
+   *@Date    :  2019/8/23 0023
+   *@Author  :  wx
+   *@explain : 删除
+   */
   async deleteAction() {
-    const id = this.post('id');
-    const baseModel = this.getBaseModel();
-    //限制删除的数量limit
-    await baseModel.where({id: id}).limit(1).delete();
+    this.dAction();
     // TODO 删除图片
     return this.success();
   }

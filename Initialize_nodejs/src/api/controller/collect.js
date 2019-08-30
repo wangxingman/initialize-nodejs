@@ -6,7 +6,7 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'collect');
+    super(ctx, 'collects');
   }
 
   /**
@@ -16,7 +16,9 @@ module.exports = class extends think.framework.crud {
    */
   async listAction() {
     const typeId = this.get('typeId');
-    const base = await this.getBaseModel()
+    const session = await this.session('user');
+    const userId = session.id;
+    const list = await this.getBaseModel()
       .field(['c.*', 'g.name', 'g.list_pic_url', 'g.goods_brief', 'g.retail_price'])
       .alias('c')
       .join({
@@ -24,7 +26,7 @@ module.exports = class extends think.framework.crud {
         join: 'left',
         as: 'g',
         on: ['c.value_id', 'g.id']
-      }).where({user_id: this.getLoginUserId(), type_id: parseInt(typeId)}).countSelect();
+      }).where({user_id: userId, type_id: parseInt(typeId)}).countSelect();
 
     return this.success(list);
   }
@@ -38,24 +40,26 @@ module.exports = class extends think.framework.crud {
     const typeId = this.post('typeId');
     const valueId = this.post('valueId');
 
-    const collect = await this.model('collect').where({
+    const session = await this.session('user');
+    const userId = session.id;
+    const collect = await this.model('collects').where({
       type_id: typeId,
       value_id: valueId,
-      user_id: this.getLoginUserId()
+      user_id: userId
     }).find();
     let collectRes = null;
     let handleType = 'add';
     if (think.isEmpty(collect)) {
       // 添加收藏
-      collectRes = await this.model('collect').add({
+      collectRes = await this.model('collects').add({
         type_id: typeId,
         value_id: valueId,
-        user_id: this.getLoginUserId(),
+        user_id: userId,
         add_time: parseInt(new Date().getTime() / 1000)
       });
     } else {
       // 取消收藏
-      collectRes = await this.model('collect').where({id: collect.id}).delete();
+      collectRes = await this.model('collects').where({id: collect.id}).delete();
       handleType = 'delete';
     }
     if (collectRes > 0) {

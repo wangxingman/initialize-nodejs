@@ -51,6 +51,7 @@ module.exports = [
     }
   },
   {
+    //配置session中间件
     handle: session
   },
   {

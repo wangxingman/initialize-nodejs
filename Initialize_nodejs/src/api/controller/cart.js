@@ -6,7 +6,7 @@
  */
 module.exports = class extends think.framework.crud {
   constructor(ctx) {
-    super(ctx, 'cart');
+    super(ctx, 'carts');
   }
 
   /**
@@ -16,7 +16,11 @@ module.exports = class extends think.framework.crud {
    */
   async getCart() {
     const baseModel = this.getBaseModel();
-    const cartList = await baseModel.where({user_id: this.getLoginUserId(), session_id: 1}).select();
+    const userId = this.getLoginUserId();
+    if (think.isEmpty(userId)) {
+      return this.fail('用户不存在');
+    }
+    const cartList = await baseModel.where({user_id: userId, session_id: think.const.number.one}).select();
     // 获取购物车统计信息
     let goodsCount = 0;
     let goodsAmount = 0.00;
@@ -60,7 +64,7 @@ module.exports = class extends think.framework.crud {
    *@Author  :  wx
    *@explain :  添加商品到购物车
    */
-  async adAction() {
+  async addAction() {
     const goodsId = this.post('goodsId');
     const productId = this.post('productId');
     const number = this.post('number');
@@ -78,7 +82,7 @@ module.exports = class extends think.framework.crud {
     }
 
     // 判断购物车中是否存在此规格商品
-    const cartInfo = await this.model('cart').where({goods_id: goodsId, product_id: productId}).find();
+    const cartInfo = await this.getBaseModel().where({goods_id: goodsId, product_id: productId}).find();
     if (think.isEmpty(cartInfo)) {
       // 添加操作
 
@@ -107,14 +111,14 @@ module.exports = class extends think.framework.crud {
         checked: 1
       };
 
-      await this.model('cart').thenAdd(cartData, {product_id: productId});
+      await this.getBaseModel().thenAdd(cartData, {product_id: productId});
     } else {
       // 如果已经存在购物车中，则数量增加
       if (productInfo.goods_number < (number + cartInfo.number)) {
         return this.fail(400, '库存不足');
       }
       //increment 字段增加值
-      await this.model('cart').where({
+      await this.getBaseModel().where({
         goods_id: goodsId,
         product_id: productId,
         id: cartInfo.id
@@ -134,6 +138,7 @@ module.exports = class extends think.framework.crud {
     const id = this.post('id'); // cart.id
     const number = parseInt(this.post('number')); // 不是
 
+    const baseModel = this.getBaseModel();
     // 取得规格的信息,判断规格库存
     const productInfo = await this.model('product').where({goods_id: goodsId, id: productId}).find();
     if (think.isEmpty(productInfo) || productInfo.goods_number < number) {
@@ -141,17 +146,17 @@ module.exports = class extends think.framework.crud {
     }
 
     // 判断是否已经存在product_id购物车商品
-    const cartInfo = await this.model('cart').where({id: id}).find();
+    const cartInfo = await baseModel.where({id: id}).find();
     // 只是更新number
     if (cartInfo.product_id === productId) {
-      await this.model('cart').where({id: id}).update({
+      await baseModel.where({id: id}).update({
         number: number
       });
 
       return this.success(await this.getCart());
     }
 
-    const newCartInfo = await this.model('cart').where({goods_id: goodsId, product_id: productId}).find();
+    const newCartInfo = await baseModel.where({goods_id: goodsId, product_id: productId}).find();
     if (think.isEmpty(newCartInfo)) {
       // 直接更新原来的cartInfo
 
@@ -174,7 +179,7 @@ module.exports = class extends think.framework.crud {
         goods_sn: productInfo.goods_sn
       };
 
-      await this.model('cart').where({id: id}).update(cartData);
+      await baseModel.where({id: id}).update(cartData);
     } else {
       // 合并购物车已有的product信息，删除已有的数据
       const newNumber = number + newCartInfo.number;
@@ -183,7 +188,7 @@ module.exports = class extends think.framework.crud {
         return this.fail(400, '库存不足');
       }
 
-      await this.model('cart').where({id: newCartInfo.id}).delete();
+      await baseModel.where({id: newCartInfo.id}).delete();
 
       const cartData = {
         number: newNumber,
@@ -195,48 +200,49 @@ module.exports = class extends think.framework.crud {
         goods_sn: productInfo.goods_sn
       };
 
-      await this.model('cart').where({id: id}).update(cartData);
+      await baseModel.where({id: id}).update(cartData);
     }
     return this.success(await this.getCart());
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  是否选择商品【批量操作】
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  是否选择商品【批量操作】
+   */
   async checkedAction() {
+    const baseModel = this.getBaseModel();
     let productId = this.post('productIds').toString();
     const isChecked = this.post('isChecked');
     if (think.isEmpty(productId)) {
       return this.fail('删除出错');
     }
     productId = productId.split(',');
-    await this.model('cart').where({product_id: {'in': productId}}).update({checked: parseInt(isChecked)});
+    await baseModel.where({product_id: {'in': productId}}).update({checked: parseInt(isChecked)});
     return this.success(await this.getCart());
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain : 删除选中的购物车商品，批量删除
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain : 删除选中的购物车商品，批量删除
+   */
   async deleteAction() {
+    const baseModel = this.getBaseModel();
     let productId = this.post('productIds');
     if (!think.isString(productId)) {
       return this.fail('删除出错');
     }
-
     productId = productId.split(',');
-    await this.model('cart').where({product_id: {'in': productId}}).delete();
+    await baseModel.where({product_id: {'in': productId}}).delete();
     return this.success(await this.getCart());
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  获取购物车商品的总件件数
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  获取购物车商品的总件件数
+   */
   async goodscountAction() {
     const cartData = await this.getCart();
     return this.success({
@@ -247,18 +253,23 @@ module.exports = class extends think.framework.crud {
   }
 
   /**
-  *@Date    :  2019/8/24 0024
-  *@Author  :  wx
-  *@explain :  订单提交前的检验和填写相关订单信息
-  */
+   *@Date    :  2019/8/24 0024
+   *@Author  :  wx
+   *@explain :  订单提交前的检验和填写相关订单信息
+   */
   async checkoutAction() {
     const addressId = this.get('addressId'); // 收货地址id
+    const user = await this.session('user');
+    const userId = user.id;
+    if (think.isEmpty(userId)) {
+      return this.fail('用户不存在');
+    }
     //默认地址 还是选择的地址
     let checkedAddress = null;
     if (addressId) {
-      checkedAddress = await this.model('address').where({is_default: 1, user_id: this.getLoginUserId()}).find();
+      checkedAddress = await this.model('addresss').where({is_default: 1, user_id: userId}).find();
     } else {
-      checkedAddress = await this.model('address').where({id: addressId, user_id: this.getLoginUserId()}).find();
+      checkedAddress = await this.model('addresss').where({id: addressId, user_id: userId}).find();
     }
 
     if (!think.isEmpty(checkedAddress)) {
@@ -298,7 +309,5 @@ module.exports = class extends think.framework.crud {
       actualPrice: actualPrice
     });
   }
-
-
 
 };

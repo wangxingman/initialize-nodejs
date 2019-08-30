@@ -82,6 +82,5 @@ module.exports = class extends think.framework.crud {
     return this.success();
   }
 
-
 }
 

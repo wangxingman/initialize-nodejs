@@ -12,12 +12,12 @@ module.exports = class extends think.framework.crud {
   /**
   *@Date    :  2019/8/24 0024
   *@Author  :  wx
-  *@explain :  获取目录数据
+  *@explain :  获取当前目录数据【以及子目录】 获取一级目录
   */
   async indexAction() {
     const categoryId = this.get('id');
 
-    const model = this.model('category');
+    const model = this.getBaseModel();
     const data = await model.limit(10).where({parent_id: 0}).select();
 
     let currentCategory = null;
@@ -31,6 +31,7 @@ module.exports = class extends think.framework.crud {
 
     // 获取子分类数据
     if (currentCategory && currentCategory.id) {
+      //当前目录下面的子目录
       currentCategory.subCategoryList = await model.where({'parent_id': currentCategory.id}).select();
     }
 
@@ -43,7 +44,7 @@ module.exports = class extends think.framework.crud {
   /**
   *@Date    :  2019/8/24 0024
   *@Author  :  wx
-  *@explain :  当前目录【并且下面子目录】
+  *@explain :  当前目录【并且下面子目录】【再点击的时候显示下面的子菜单】
   */
   async currentAction() {
     const categoryId = this.get('id');
@@ -62,7 +63,5 @@ module.exports = class extends think.framework.crud {
       currentCategory: currentCategory
     });
   }
-
-
 
 }

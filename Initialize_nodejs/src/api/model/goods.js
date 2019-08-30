@@ -7,6 +7,16 @@
 module.exports = class extends think.Model {
 
   /**
+  *@Date    :  2019/8/26 0026
+  *@Author  :  wx
+  *@explain :  获取商品的product【一个商品 对应多个 大小 库存】
+  */
+  async getProductList(goodsId) {
+    const goods = await this.model('product').where({goods_id: goodsId}).select();
+    return goods;
+  }
+
+  /**
   *@Date    :  2019/8/24 0024
   *@Author  :  wx
   *@explain : 获取商品的规格信息
